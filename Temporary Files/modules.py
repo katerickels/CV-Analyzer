@@ -256,4 +256,75 @@ def straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : in
     disposable_lightcurve.time.format = 'btjd' 
     disposable_lightcurve.flux.unit = lightcurve.flux.unit
 
+<<<<<<< Updated upstream
     return disposable_lightcurve
+=======
+    return disposable_lightcurve
+
+
+def get_lightcurves(TIC, use_till = 30, use_from = 0, author = None, cadence = None) -> list:
+    """
+    Returns lightcurves for a set TIC from the TESS database.
+    
+    Parameters
+    ----------
+    TIC : int
+        The TIC number of the system.
+    use_till : int
+        (default = 30)
+        The number of lightcurves to be used.
+    use_from : int
+        (default = 0)
+        The number of lightcurves to be skipped.
+    author : str
+        (default = None)
+        The authors for the lightcurve. Eg. 'SPOC', 'QLP', etc.
+    cadence : str or float
+        (default = None)
+        The cadence of the lightcurve, used interchangably with exptime. Eg. 'long', 'short', float, etc.
+
+    Returns
+    --------
+    lcs : list
+        The list of lightcurves.
+    """
+    search_results = lk.search_lightcurve(TIC, author = author, cadence = cadence)
+    print(search_results[use_from:use_till])
+
+    lcs = []
+
+    for i in range(use_from, use_till):
+        try:
+            lcs.append(search_results[i].download())
+        except:
+            pass
+
+    return lcs
+
+
+def combine_lightcurves(lcs):
+    """
+    Combines multiple lightcurves into one.
+
+    Parameters
+    ----------
+    lcs : list
+        List of lightkurve.LightCurve objects.
+    
+    Returns
+    -------
+    lightcurve : lightkurve.LightCurve
+        Combined lightcurve.
+    """
+    lightcurve_df = pd.DataFrame({
+        'time' : np.concatenate([lc.time.jd for lc in lcs]),
+        'flux' : np.concatenate([lc.flux for lc in lcs])
+    })
+    lightcurve_df.sort_values('time', inplace=True)
+    print(lightcurve_df.info())
+    print(lightcurve_df.memory_usage())
+
+    lc = lk.LightCurve(time= lightcurve_df['time'], flux= lightcurve_df['flux'])
+    lc.time.format = 'btjd'
+    return lc
+>>>>>>> Stashed changes
