@@ -241,10 +241,11 @@ def straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : in
     '''
 
     #BASICS
-    flux = np.array(lightcurve.flux, dtype=float)
+    lc = pd.DataFrame({'time': lightcurve.time.jd, 'flux': np.array(lightcurve.flux, dtype='d')})
+    lc.dropna(inplace=True)
+    cadence_in_days = ((np.median(np.diff(lc['time'][:100])) * 86400).round())/86400
+    flux = np.array(lightcurve.flux, dtype='d')
     time = np.array(lightcurve.time.jd)
-    cadence_in_days = ((np.median(np.diff(time[:100])) * 86400).round())/86400
-    lc = pd.DataFrame({'time': time, 'flux': flux})
 
     #PEAKS
     peaks, _ = signal.find_peaks(np.diff(time), height = cadence_in_days * 10)
