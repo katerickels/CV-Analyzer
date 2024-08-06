@@ -256,9 +256,6 @@ def straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : in
     disposable_lightcurve.time.format = 'btjd' 
     disposable_lightcurve.flux.unit = lightcurve.flux.unit
 
-<<<<<<< Updated upstream
-    return disposable_lightcurve
-=======
     return disposable_lightcurve
 
 
@@ -327,4 +324,3 @@ def combine_lightcurves(lcs):
     lc = lk.LightCurve(time= lightcurve_df['time'], flux= lightcurve_df['flux'])
     lc.time.format = 'btjd'
     return lc
->>>>>>> Stashed changes
