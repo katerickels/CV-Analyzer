@@ -271,7 +271,6 @@ def straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : in
 
     disposable_lightcurve = lk.LightCurve(time = time_smooth, flux = flux_smooth)
     disposable_lightcurve.time.format = 'btjd' 
-    disposable_lightcurve.flux.unit = lightcurve.flux.unit
 
     return disposable_lightcurve
 
