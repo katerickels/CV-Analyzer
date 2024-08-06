@@ -9,7 +9,7 @@ import matplotlib
 
 TIC = ''
 
-def apply_savgol_filter(time, flux, window_length_for_remove : int = 7500, mode : str = 'remove', window_length_for_gaussian : int = 100, polyorder = 4, displaygraphs : bool = True) -> pd.DataFrame:
+def apply_savgol_filter(time, flux, window_length_for_remove : int = 7500, mode : str = 'remove', window_length_for_gaussian : int = 100, polyorder = 4, displaygraphs : bool = True, want : str = 'df') -> pd.DataFrame:
     '''
     Applies the savgol filter to `flux` and `time`.
 
@@ -31,6 +31,12 @@ def apply_savgol_filter(time, flux, window_length_for_remove : int = 7500, mode 
         The window length for the remove filter, works only in `'remove'` mode
     polyorder : int
         The polynomial order for the savgol filter
+    displaygraphs : bool
+        (default = True)
+        Whether to display the graphs or not
+    want : str ('df' or 'lc')
+        (default = 'df')
+        Whether to return the result as a `lightkurve.LightCurve` object or a `pd.DataFrame` object
 
     Returns:
     ----------
@@ -61,10 +67,21 @@ def apply_savgol_filter(time, flux, window_length_for_remove : int = 7500, mode 
             plt.plot(time, flux - flx2, 'b-', lw=0.5)
 
         #Building the lightcurve again, with the correction
-        return pd.DataFrame({
-            'time':time,
-            'flux':flux - flx2
-        }, index=None)
+    
+        if want == 'lc':
+            l = lk.LightCurve(time = time, flux = flux - flx2)
+            l.time.format = 'btjd'
+            return l
+
+        elif want == 'df':
+            return pd.DataFrame({
+                'time':time,
+                'flux':flux - flx2
+            }, index=None)
+
+        else:
+            raise ValueError("Invalid value for 'want'. Must be either 'lc' or 'df'.")
+
 
     elif mode == 'gaussian':   #Finding the gaussians, techincally
         fit_flux = signal.savgol_filter(flux, int(window_length_for_gaussian), polyorder)
