@@ -341,3 +341,49 @@ def combine_lightcurves(lcs):
     lc = lk.LightCurve(time= lightcurve_df['time'], flux= lightcurve_df['flux'])
     lc.time.format = 'btjd'
     return lc
+
+def gaussian(x, amp, cen, wid):
+    """
+    Returns a gaussian function.
+    
+    Parameters
+    ----------
+    x : array_like or float
+        The x value(s) for which the gaussian is to be calculated.
+    amp : float
+        The amplitude of the gaussian.
+    cen : float
+        The center of the gaussian.
+    wid : float
+        The width of the gaussian.
+    
+    Returns
+    -------
+    y : array_like or float
+        The value of the gaussian at `x`.
+    """
+    return amp * np.exp(-(x - cen)**2 / (2 * wid**2))
+
+def sine(x, amp, freq, phase, offset):
+    """
+    Returns a sine function.
+    
+    Parameters
+    ----------
+    x : array_like or float
+        The x value(s) for which the sine is to be calculated.
+    amp : float
+        The amplitude of the sine.
+    freq : float
+        The frequency of the sine.
+    phase : float
+        The phase of the sine.
+    offset : float
+        The offset of the sine.
+    
+    Returns
+    -------
+    y : array_like or float
+        The value of the sine at `x`.
+    """
+    return amp * np.sin(2 * np.pi * freq * (x - phase)) + offset
