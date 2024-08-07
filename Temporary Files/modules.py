@@ -249,7 +249,7 @@ def straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : in
 
     #PEAKS
     peaks, _ = signal.find_peaks(np.diff(time), height = cadence_in_days * 10)
-    print(peaks)
+    print(f"Gaps at times: {time[peaks] - 2457000}")
 
     #Filling the Gaps
     for i in peaks:
@@ -304,12 +304,13 @@ def get_lightcurves(TIC, use_till = 30, use_from = 0, author = None, cadence = N
     """
     search_results = lk.search_lightcurve(TIC, author = author, cadence = cadence)
     print(search_results[use_from:use_till])
+    sorted_search_results = sorted(search_results[use_from:use_till], key=lambda x: x.mission)
 
     lcs = []
 
-    for i in range(use_from, use_till):
+    for s in sorted_search_results:
         try:
-            lcs.append(search_results[i].download())
+            lcs.append(s.download())
         except:
             pass
 
