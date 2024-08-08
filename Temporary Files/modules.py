@@ -275,6 +275,39 @@ def straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : in
 
     return disposable_lightcurve
 
+def straight_lines_without_straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : int = 4) -> lk.lightcurve.LightCurve:
+    """Takes in a lightcurve and smoothens the lightcurve with a spline interpolation with a factor of `cadence_magnifier`.
+    Returns a lightcurve"""
+
+    #BASICS
+    lc = pd.DataFrame({'time': lightcurve.time.jd, 'flux': np.array(lightcurve.flux, dtype='d')})
+    lc.dropna(inplace=True)
+    cadence_in_days = ((np.median(np.diff(lc['time'][:100])) * 86400).round())/86400
+    flux = np.array(lightcurve.flux, dtype='d')
+    time = np.array(lightcurve.time.jd)
+
+    #PEAKS
+    peaks, _ = signal.find_peaks(np.diff(time), height = cadence_in_days * 10)
+    print(f"Gaps at times: {time[peaks] - 2457000}")
+
+    lightcurve_df = pd.DataFrame({'time':[], 'flux':[]})
+
+    np.append(peaks, len(time) - 1)
+
+    current_begin = 0
+
+    for peak in peaks:
+        current_end = peak
+        time_smooth = np.linspace(time[current_begin], time[current_end], len(time[current_begin:current_end]) * cadence_magnifier)
+        flux_smooth = spline(time[current_begin:current_end], flux[current_begin:current_end], k = 3)(time_smooth)
+        lightcurve_df = pd.concat([lightcurve_df, pd.DataFrame({'time':time_smooth, 'flux':flux_smooth})]).sort_values('time')
+        current_begin = peak + 1
+
+    disposable_lightcurve = lk.LightCurve(time = lightcurve_df['time'], flux = lightcurve_df['flux'])
+    disposable_lightcurve.time.format = 'btjd' 
+
+    return disposable_lightcurve
+
 
 def get_lightcurves(TIC, use_till = 30, use_from = 0, author = None, cadence = None) -> list:
     """
