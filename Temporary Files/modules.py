@@ -249,7 +249,7 @@ def straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : in
 
     #PEAKS
     peaks, _ = signal.find_peaks(np.diff(time), height = cadence_in_days * 10)
-    print(peaks)
+    print(f"Gaps at times: {time[peaks] - 2457000}")
 
     #Filling the Gaps
     for i in peaks:
@@ -271,6 +271,38 @@ def straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : in
     # lightcurve.flux, lightcurve.time = flux_smooth, time_smooth
 
     disposable_lightcurve = lk.LightCurve(time = time_smooth, flux = flux_smooth)
+    disposable_lightcurve.time.format = 'btjd' 
+
+    return disposable_lightcurve
+
+def straight_lines_without_straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : int = 4) -> lk.lightcurve.LightCurve:
+    """Takes in a lightcurve and smoothens the lightcurve with a spline interpolation with a factor of `cadence_magnifier`.
+    Returns a lightcurve"""
+
+    #BASICS
+    lc = pd.DataFrame({'time': lightcurve.time.jd, 'flux': np.array(lightcurve.flux, dtype='d')})
+    lc.dropna(inplace=True)
+    cadence_in_days = ((np.median(np.diff(lc['time'][:100])) * 86400).round())/86400
+    flux = np.array(lightcurve.flux, dtype='d')
+    time = np.array(lightcurve.time.jd)
+
+    #PEAKS
+    peaks, _ = signal.find_peaks(np.diff(time), height = cadence_in_days * 10)
+    print(f"Gaps at times: {time[peaks] - 2457000}")
+
+    lightcurve_df = pd.DataFrame({'time':[], 'flux':[]})
+    peaks = np.append(peaks, len(time) - 1)
+
+    current_begin = 0
+
+    for peak in peaks:
+        current_end = peak
+        time_smooth = np.linspace(time[current_begin], time[current_end], int(((time[current_end] - time[current_begin]) / cadence_in_days ) * cadence_magnifier))
+        flux_smooth = spline(time[current_begin:current_end], flux[current_begin:current_end], k = 3)(time_smooth)
+        lightcurve_df = pd.concat([lightcurve_df, pd.DataFrame({'time':time_smooth, 'flux':flux_smooth})]).sort_values('time')
+        current_begin = peak + 1
+
+    disposable_lightcurve = lk.LightCurve(time = lightcurve_df['time'], flux = lightcurve_df['flux'])
     disposable_lightcurve.time.format = 'btjd' 
 
     return disposable_lightcurve
@@ -304,12 +336,13 @@ def get_lightcurves(TIC, use_till = 30, use_from = 0, author = None, cadence = N
     """
     search_results = lk.search_lightcurve(TIC, author = author, cadence = cadence)
     print(search_results[use_from:use_till])
+    sorted_search_results = sorted(search_results[use_from:use_till], key=lambda x: x.mission)
 
     lcs = []
 
-    for i in range(use_from, use_till):
+    for s in sorted_search_results:
         try:
-            lcs.append(search_results[i].download())
+            lcs.append(s.download())
         except:
             pass
 
@@ -341,3 +374,52 @@ def combine_lightcurves(lcs):
     lc = lk.LightCurve(time= lightcurve_df['time'], flux= lightcurve_df['flux'])
     lc.time.format = 'btjd'
     return lc
+
+def gaussian(x, amp, cen, wid, inverse : bool = False):
+    """
+    Returns a gaussian function.
+    
+    Parameters
+    ----------
+    x : array_like or float
+        The x value(s) for which the gaussian is to be calculated.
+    amp : float
+        The amplitude of the gaussian.
+    cen : float
+        The center of the gaussian.
+    wid : float
+        The width of the gaussian.
+    
+    Returns
+    -------
+    y : array_like or float
+        The value of the gaussian at `x`.
+    """
+    if inverse == True:
+        return - (amp * np.exp(-(x - cen)**2 / (2 * wid**2)))
+    else:
+        return amp * np.exp(-(x - cen)**2 / (2 * wid**2))
+
+def sine(x, amp, freq, phase, offset):
+    """
+    Returns a sine function.
+    
+    Parameters
+    ----------
+    x : array_like or float
+        The x value(s) for which the sine is to be calculated.
+    amp : float
+        The amplitude of the sine.
+    freq : float
+        The frequency of the sine.
+    phase : float
+        The phase of the sine.
+    offset : float
+        The offset of the sine.
+    
+    Returns
+    -------
+    y : array_like or float
+        The value of the sine at `x`.
+    """
+    return amp * np.sin(2 * np.pi * freq * (x - phase)) + offset
