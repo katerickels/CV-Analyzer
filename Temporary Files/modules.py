@@ -291,14 +291,13 @@ def straight_lines_without_straight_lines(lightcurve : lk.lightcurve.LightCurve,
     print(f"Gaps at times: {time[peaks] - 2457000}")
 
     lightcurve_df = pd.DataFrame({'time':[], 'flux':[]})
-
-    np.append(peaks, len(time) - 1)
+    peaks = np.append(peaks, len(time) - 1)
 
     current_begin = 0
 
     for peak in peaks:
         current_end = peak
-        time_smooth = np.linspace(time[current_begin], time[current_end], len(time[current_begin:current_end]) * cadence_magnifier)
+        time_smooth = np.linspace(time[current_begin], time[current_end], int(((time[current_end] - time[current_begin]) / cadence_in_days ) * cadence_magnifier))
         flux_smooth = spline(time[current_begin:current_end], flux[current_begin:current_end], k = 3)(time_smooth)
         lightcurve_df = pd.concat([lightcurve_df, pd.DataFrame({'time':time_smooth, 'flux':flux_smooth})]).sort_values('time')
         current_begin = peak + 1
@@ -376,7 +375,7 @@ def combine_lightcurves(lcs):
     lc.time.format = 'btjd'
     return lc
 
-def gaussian(x, amp, cen, wid):
+def gaussian(x, amp, cen, wid, inverse : bool = False):
     """
     Returns a gaussian function.
     
@@ -396,7 +395,10 @@ def gaussian(x, amp, cen, wid):
     y : array_like or float
         The value of the gaussian at `x`.
     """
-    return amp * np.exp(-(x - cen)**2 / (2 * wid**2))
+    if inverse == True:
+        return - (amp * np.exp(-(x - cen)**2 / (2 * wid**2)))
+    else:
+        return amp * np.exp(-(x - cen)**2 / (2 * wid**2))
 
 def sine(x, amp, freq, phase, offset):
     """
