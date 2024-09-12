@@ -10,14 +10,14 @@ import matplotlib
 TIC = ''
 
 def apply_savgol_filter(time, flux, window_length_for_remove : int = 7500, mode : str = 'remove', window_length_for_gaussian : int = 100, polyorder = 4, displaygraphs : bool = True, want : str = 'df') -> pd.DataFrame:
-    '''
+    """
     Applies the savgol filter to `flux` and `time`.
 
     Works in two modes:
     - `'remove'`: Removes the outburst and other large features
-    - `'gaussian'`: Finds the gaussians, techincally
+    - `'gaussian'`: Finds the gaussians
 
-    Parameters:
+    Parameters
     ----------
     time : array-like
         The time array of the lightcurve
@@ -38,7 +38,7 @@ def apply_savgol_filter(time, flux, window_length_for_remove : int = 7500, mode 
         (default = 'df')
         Whether to return the result as a `lightkurve.LightCurve` object or a `pd.DataFrame` object
 
-    Returns:
+    Returns
     ----------
     if `mode == 'remove'`:
         returns the corrected lightcurve as a pandas.DataFrame object
@@ -47,7 +47,8 @@ def apply_savgol_filter(time, flux, window_length_for_remove : int = 7500, mode 
         returns the gaussians as a pandas.DataFrame object
         Columns: `'time'` and  `'gaussian_flux'`
 
-    '''
+    """
+    
     if mode == 'remove':  #Removing the outburst and other large features
         flx = signal.savgol_filter(flux, int(window_length_for_remove), polyorder)
         flx2 = signal.savgol_filter(flx, int(window_length_for_remove), polyorder)
@@ -116,28 +117,24 @@ def apply_savgol_filter(time, flux, window_length_for_remove : int = 7500, mode 
 
 #Function for checking the differences in peaks
 def process_gaussians(fitted : lk.lightcurve.LightCurve | pd.DataFrame, threshold):
-    '''
+    """
     Finds the peaks, the periods and mean of the periods for fitted gaussians curve.
 
-    Parameters:
-    -----------
-    `fitted` : `lightkurve.LightCurve` or `pd.Dataframe` with columns `'time'` and `'gaussian_flux'` 
-        The lightcurve that has been fitted for gaussians.
-    `threshold` : `float`
-        The threshold for the peak detection.
-    `number_of_gaps` : `int`
-        (default = 10)
-        The aproximate number of gaps, always enter a much higher value than the true number.
+    Args:
+        fitted (lightkurve.LightCurve or pd.DataFrame): 
+            The lightcurve that has been fitted for Gaussians. Must have columns 'time' and 'gaussian_flux' if a DataFrame.
+        threshold (float): 
+            The threshold for peak detection.
+        number_of_gaps (int):
+            (default = 10)
+            The aproximate number of gaps, always enter a much higher value than the true number.
 
-    Returns:
-    --------
-    mean_diff : `float`
-        The mean difference between the peaks.
-    peaks_n_periods : `pd.DataFrame`
-        Columns:
-        - 'period' : The periods between the peaks
-        - 'time' : The peak times. If is period is `p2 - p1`, this returns `p2`.
-    '''
+        Returns:
+        pd.DataFrame: 
+            DataFrame with columns:
+            - 'period': The periods between the peaks.
+            - 'time': The peak times. If the period is `p2 - p1`, this returns `p2`.
+    """
 
     import lightkurve as lk
     import pandas as pd
@@ -166,6 +163,7 @@ def process_gaussians(fitted : lk.lightcurve.LightCurve | pd.DataFrame, threshol
         'time' : peak_times[1:]
     })
 
+
 #Functions for rejecting outliers
 def reject_outliers(data, m=1):
     removed = data[abs(data - np.mean(data)) > m * np.std(data)]
@@ -179,7 +177,7 @@ def reject_outliers_pd(data : pd.DataFrame, column_name : str, m=1):
     '''
     Removes the outliers from the data.
 
-    Parameters:
+    Parameters
     ----------
     data : pd.DataFrame
         The data from which the outliers are to be removed.
@@ -188,7 +186,7 @@ def reject_outliers_pd(data : pd.DataFrame, column_name : str, m=1):
     m : int
         The number of standard deviations to be considered as an outlier.
     
-    Returns:
+    Returns
     --------
     accepted : pd.DataFrame
         The data with the outliers removed.
@@ -206,7 +204,7 @@ def make_OC_diagram(accepted : pd.DataFrame, calculate_from : int = 1):
     '''
     Makes the O-C diagram from the accepted data.
 
-    Parameters:
+    Parameters
     ----------
     accepted : pd.DataFrame
         The data from which the O-C diagram is to be made. Must have columns 'time' and 'period'.
@@ -214,7 +212,7 @@ def make_OC_diagram(accepted : pd.DataFrame, calculate_from : int = 1):
         (default = 1)
         The number of periods to calculate the CALCULATED period from.
     
-    Returns:
+    Returns
     --------
     OC_DataFrame : pd.DataFrame
         The O-C diagram data.
@@ -275,7 +273,7 @@ def straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : in
 
     return disposable_lightcurve
 
-def straight_lines_without_straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : int = 4) -> lk.lightcurve.LightCurve:
+def spline_while_jumping_gaps(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : int = 4) -> lk.lightcurve.LightCurve:
     """Takes in a lightcurve and smoothens the lightcurve with a spline interpolation with a factor of `cadence_magnifier`.
     Returns a lightcurve"""
 
@@ -292,8 +290,7 @@ def straight_lines_without_straight_lines(lightcurve : lk.lightcurve.LightCurve,
 
     lightcurve_df = pd.DataFrame({'time':[], 'flux':[]})
 
-    np.append(peaks, len(time) - 1)
-
+    peaks = np.append(peaks, len(time) - 1)
     current_begin = 0
 
     for peak in peaks:
@@ -350,14 +347,14 @@ def get_lightcurves(TIC, use_till = 30, use_from = 0, author = None, cadence = N
     return lcs
 
 
-def combine_lightcurves(lcs):
+def combine_lightcurves(lcs : list[lk.lightcurve.LightCurve]) -> lk.lightcurve.LightCurve:
     """
     Combines multiple lightcurves into one.
 
     Parameters
     ----------
-    lcs : list
-        List of lightkurve.LightCurve objects.
+    lcs : list[lightkurve.LightCurve]
+        List of lightcurves to be combined.
     
     Returns
     -------
@@ -369,8 +366,8 @@ def combine_lightcurves(lcs):
         'flux' : np.concatenate([lc.flux for lc in lcs])
     })
     lightcurve_df.sort_values('time', inplace=True)
-    print(lightcurve_df.info())
-    print(lightcurve_df.memory_usage())
+    lightcurve_df.info()
+    #print(lightcurve_df.memory_usage())
 
     lc = lk.LightCurve(time= lightcurve_df['time'], flux= lightcurve_df['flux'])
     lc.time.format = 'btjd'
