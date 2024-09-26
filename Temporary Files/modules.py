@@ -285,7 +285,7 @@ def spline_while_jumping_gaps(lightcurve : lk.lightcurve.LightCurve, cadence_mag
     time = np.array(lightcurve.time.jd)
 
     #PEAKS
-    peaks, _ = signal.find_peaks(np.diff(time), height = cadence_in_days * 10)
+    peaks, _ = signal.find_peaks(np.diff(time), height = cadence_in_days * 50)
     print(f"Gaps at times: {time[peaks] - 2457000}")
 
     lightcurve_df = pd.DataFrame({'time':[], 'flux':[]})
@@ -295,8 +295,12 @@ def spline_while_jumping_gaps(lightcurve : lk.lightcurve.LightCurve, cadence_mag
 
     for peak in peaks:
         current_end = peak
+        print('at gap between ', time[current_begin] - 2457000, ' and ', time[current_end]-2457000)
         time_smooth = np.linspace(time[current_begin], time[current_end], int(((time[current_end] - time[current_begin]) / cadence_in_days ) * cadence_magnifier))
-        flux_smooth = spline(time[current_begin:current_end], flux[current_begin:current_end], k = 3)(time_smooth)
+        try:
+            flux_smooth = spline(time[current_begin:current_end], flux[current_begin:current_end], k = 3)(time_smooth)
+        except:
+            continue
         lightcurve_df = pd.concat([lightcurve_df, pd.DataFrame({'time':time_smooth, 'flux':flux_smooth})]).sort_values('time')
         current_begin = peak + 1
 
@@ -329,7 +333,7 @@ def get_lightcurves(TIC, use_till = 30, use_from = 0, author = None, cadence = N
 
     Returns
     --------
-    lcs : list
+    lcs : list[lk.LightCurve.LightCurve]
         The list of lightcurves.
     """
     search_results = lk.search_lightcurve(TIC, author = author, cadence = cadence)
@@ -393,10 +397,30 @@ def gaussian(x, amp, cen, wid, inverse : bool = False):
     y : array_like or float
         The value of the gaussian at `x`.
     """
-    if inverse == True:
-        return - (amp * np.exp(-(x - cen)**2 / (2 * wid**2)))
-    else:
-        return amp * np.exp(-(x - cen)**2 / (2 * wid**2))
+    return amp * np.exp(-(x - cen)**2 / (2 * wid**2))
+    
+def inverse_gaussian(x, amp, cen, wid):
+    """
+    Returns an inverse gaussian function.
+    
+    Parameters
+    ----------
+    x : array_like or float
+        The x value(s) for which the gaussian is to be calculated.
+    amp : float
+        The amplitude of the gaussian.
+    cen : float
+        The center of the gaussian.
+    wid : float
+        The width of the gaussian.
+    
+    Returns
+    -------
+    y : array_like or float
+        The value of the gaussian at `x`.
+    """
+    return - (amp * np.exp(-(x - cen)**2 / (2 * wid**2)))
+
 
 def sine(x, amp, freq, phase, offset):
     """
@@ -421,3 +445,9 @@ def sine(x, amp, freq, phase, offset):
         The value of the sine at `x`.
     """
     return amp * np.sin(2 * np.pi * freq * (x - phase)) + offset
+
+colors = ['red', 'green', 'purple', 'orange', 'yellow', 'pink', 'brown', 'magenta', 'cyan']
+def color_change():
+    c = colors.pop(0)
+    colors.append(c)
+    yield c
