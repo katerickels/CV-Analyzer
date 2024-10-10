@@ -9,7 +9,7 @@ import matplotlib
 
 TIC = ''
 
-def apply_savgol_filter(time, flux, window_length_for_remove : int = 7500, mode : str = 'remove', window_length_for_gaussian : int = 100, polyorder = 4, displaygraphs : bool = True, want : str = 'df') -> pd.DataFrame:
+def apply_savgol_filter(time, flux, window_length_for_remove : int = 7500, mode : str = 'remove', window_length_for_gaussian : int = 100, polyorder = 4, displaygraphs : bool = True, want : str = 'df', iterations : int = 5) -> pd.DataFrame:
     """
     Applies the savgol filter to `flux` and `time`.
 
@@ -50,40 +50,45 @@ def apply_savgol_filter(time, flux, window_length_for_remove : int = 7500, mode 
     """
     
     if mode == 'remove':  #Removing the outburst and other large features
-        flx = signal.savgol_filter(flux, int(window_length_for_remove), polyorder)
-        flx2 = signal.savgol_filter(flx, int(window_length_for_remove), polyorder)
+        fluxes = []
+        fluxes.append(signal.savgol_filter(flux, int(window_length_for_remove), polyorder))
+        for i in range(iterations-1):
+            fluxes.append(signal.savgol_filter(fluxes[-1], int(window_length_for_remove), polyorder))
 
         if displaygraphs:
             #plotting the savgol
             plt.figure(figsize=(10, 5))
             plt.title('Applying SavGol to remove large features')
             plt.plot(time, flux, 'r-', lw=0.5, label='Raw Light Curve')
-            plt.plot(time, flx, 'k-', lw=1, label='Initial Fit')
-            plt.plot(time, flx2, 'b-', lw=1, label='Final Fit')
+            for i in range(len(fluxes)):
+                plt.plot(time, fluxes[i], lw=1, label = f'Fit number {i+1}')
+            # plt.plot(time, fluxes[0], 'k-', lw=1, label='Initial Fit')
+            # plt.plot(time, fluxes[-1], 'b-', lw=1, label='Final Fit')
             plt.legend()
 
             #plotting the processed graph
             plt.figure(figsize=(10, 5))
             plt.title('Corrected Light Curve')
-            plt.plot(time, flux - flx2, 'b-', lw=0.5)
+            plt.plot(time, flux - fluxes[-1], 'b-', lw=0.5)
+
 
         #Building the lightcurve again, with the correction
     
         if want == 'lc':
-            l = lk.LightCurve(time = time, flux = flux - flx2)
+            l = lk.LightCurve(time = time, flux = flux - fluxes[-1])
             l.time.format = 'btjd'
             return l
 
         elif want == 'df':
             return pd.DataFrame({
                 'time':time,
-                'flux':flux - flx2
+                'flux':flux - fluxes[-1] 
             }, index=None)
 
         else:
             raise ValueError("Invalid value for 'want'. Must be either 'lc' or 'df'.")
 
-
+    #Both of these modes are obsolete now
     elif mode == 'gaussian':   #Finding the gaussians, techincally
         fit_flux = signal.savgol_filter(flux, int(window_length_for_gaussian), polyorder)
 
@@ -171,6 +176,7 @@ def reject_outliers(data, m=1):
     accepted = data[abs(data - np.mean(data)) < m * np.std(data)]
     plt.figure()
     plt.plot(accepted)
+    plt.close()
     return accepted
 
 def reject_outliers_pd(data : pd.DataFrame, column_name : str, m=1):
@@ -263,15 +269,18 @@ def straight_lines(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : in
 
     time_final = np.array(lc['time'])
     flux_final = np.array(lc['flux'])
-    time_smooth = np.linspace(time_final.min(), time_final.max(), len(time_final) * cadence_magnifier)
-    flux_smooth = spline(time_final, flux_final, k = 3)(time_smooth)
 
+    '''Thinking of not splining the lightcurve, that's why commenting this part out'''
+    # time_smooth = np.linspace(time_final.min(), time_final.max(), len(time_final) * cadence_magnifier)
+    # flux_smooth = spline(time_final, flux_final, k = 3)(time_smooth)
     # lightcurve.flux, lightcurve.time = flux_smooth, time_smooth
+    # disposable_lightcurve = lk.LightCurve(time = time_smooth, flux = flux_smooth)
+    # disposable_lightcurve.time.format = 'btjd' 
 
-    disposable_lightcurve = lk.LightCurve(time = time_smooth, flux = flux_smooth)
-    disposable_lightcurve.time.format = 'btjd' 
+    straight_lined_lc = lk.LightCurve(time = time_final, flux = flux_final)
+    straight_lined_lc.time.format = 'btjd' 
 
-    return disposable_lightcurve
+    return straight_lined_lc
 
 def spline_while_jumping_gaps(lightcurve : lk.lightcurve.LightCurve, cadence_magnifier : int = 4) -> lk.lightcurve.LightCurve:
     """Takes in a lightcurve and smoothens the lightcurve with a spline interpolation with a factor of `cadence_magnifier`.
@@ -291,18 +300,20 @@ def spline_while_jumping_gaps(lightcurve : lk.lightcurve.LightCurve, cadence_mag
     lightcurve_df = pd.DataFrame({'time':[], 'flux':[]})
 
     peaks = np.append(peaks, len(time) - 1)
+    print(peaks)
     current_begin = 0
 
     for peak in peaks:
         current_end = peak
-        print('at gap between ', time[current_begin] - 2457000, ' and ', time[current_end]-2457000)
+        print('Splining values between ', time[current_begin] - 2457000, ' and ', time[current_end]-2457000)
         time_smooth = np.linspace(time[current_begin], time[current_end], int(((time[current_end] - time[current_begin]) / cadence_in_days ) * cadence_magnifier))
         try:
             flux_smooth = spline(time[current_begin:current_end], flux[current_begin:current_end], k = 3)(time_smooth)
         except:
-            continue
+            raise(ValueError(f"Error in spline between {time[current_begin]} and {time[current_end]}"))
         lightcurve_df = pd.concat([lightcurve_df, pd.DataFrame({'time':time_smooth, 'flux':flux_smooth})]).sort_values('time')
-        current_begin = peak + 1
+
+        current_begin = peak + 1            #starting from the next INDEX value. Adding 1 to peak means it goes to the value at the next time INDEX, it does not mean adding 120s.
 
     disposable_lightcurve = lk.LightCurve(time = lightcurve_df['time'], flux = lightcurve_df['flux'])
     disposable_lightcurve.time.format = 'btjd' 
