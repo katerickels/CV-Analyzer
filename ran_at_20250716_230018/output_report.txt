@@ -1,0 +1,16 @@
+Initial period:  0.1049671446 d
+Refined period:  0.1049670542 d
+Initial T0:      1683.3929042571 BJD_TDB
+Refined T0:      1683.3924221513 BJD_TDB
+N mid‑times:     1837
+
+--- Linear O-C Fit ---
+Linear slope:    -0.008 s/cycle
+Linear offset:   -41.7 s
+
+--- Quadratic O-C Fit ---
+Quadratic coeff (c): -3.38e-05 s/cycle²
+Linear coeff (b):    0.103 s/cycle
+Constant term (a):   -96.6 s
+Period change rate:  -6.75e-05 s/cycle
+Period change rate:  -2.35e-01 s/year
