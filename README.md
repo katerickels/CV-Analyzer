@@ -30,7 +30,7 @@ CV-Analyzer/
 
 ### Prerequisites
 
-- Python 3.8 or higher
+- Python 3.11
 - Git (for cloning the repository)
 
 ### Quick Setup
@@ -44,7 +44,7 @@ CV-Analyzer/
 2. **Create and activate a virtual environment**:
    ```bash
    # Create virtual environment
-   python3 -m venv venv
+   python3.11 -m venv venv
    
    # Activate virtual environment
    # On macOS/Linux:
