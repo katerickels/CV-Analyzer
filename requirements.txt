@@ -1,0 +1,15 @@
+lightkurve
+numpy
+pandas
+astropy
+scipy
+matplotlib
+tqdm
+seaborn
+plotly
+pyastronomy
+ipykernel
+ipython
+jupyter
+notebook
+ipympl
